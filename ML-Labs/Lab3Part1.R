@@ -38,6 +38,7 @@ View(st)
 mydate = "2013-01-14"
 selected.dates = subset(st, as.Date(st$date) < as.Date(mydate))
 
+fd
 
 
 plot(temp, type="o")
