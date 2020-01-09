@@ -72,8 +72,10 @@ theta = seq(from = 0, to = 10, by = 0.01)
 vec = sapply(theta,like)
 plot(theta, sapply(theta, like), xlab ="theta", ylab ="y")
 
-
-curve(dim(data)[1]*log(x) - x*sum(data), from = 0, to = 4)
+par(mfrow=c(1,1))
+  curve(dim(data)[1]*log(x) - x*sum(data), from = 0, to = 10)
+  curve(dim(data)[1]*log(x-1) - x*sum(data), from = 0, to = 10, add = TRUE, col = "red")
+  
 curve(dim(machines_1_)[1]*log(x) - x*sum(machines_1_), from = 0, to = 10)
 
 newlike = function(theta, data){
@@ -81,11 +83,13 @@ newlike = function(theta, data){
   x=n*log(theta) - theta*sum(data)
   return(x)
 }
+vec2 = sapply(theta,data,newlike)
+
 
 theta = seq(from = 0, to = 10, by = 0.01)
 newvec = newlike(theta, data$Length)  #varör olika svar om bara data, är ju samma värden ?
 plot(theta,sapply(theta, like), xlab = "theta", ylab="y")
-lines(theta, newlike(theta, data$Length), col="red")
+lines(theta, newlike(theta, data$Length), col="red", add = TRUE)
 theta[which.max(newvec)] #max when theta = 1.13
 theta[which.max(vec)] #max when theta = 1.13
 optimize(f = like, c(0,9), maximum=TRUE)$maximum #1.126201
@@ -123,16 +127,18 @@ lines(theta, newlike(theta, data$Length), col="red")
 theta[which.max(bay)] #max when theta = 0.91
 optimize(f = bayesian, c(0,9), maximum=TRUE, data=data$Length)$maximum # last maximum to get the max
 
-bay.vec = sapply(theta,bay.like)
+bay.vec = sapply(theta, bay.like)
 plot(theta,bay.vec)
 theta[which.max(bay.vec)]
+optimize(f = bay.like, c(0,9), maximum=TRUE)$maximum # last maximum to get the max
+
 
 #2.5 Using theta = 1.126201 generate 50 observationsfrom p(x|theta) = theta*exp(-thetax)
 #create a histogram for old and new data
 
 set.seed(12345)
 x = rexp(50, 1.26201)
-par(mfrow=c(2,1))
+par(mfrow=c(1,2))
 breaks = seq(0, 10, 0.5)
 hist(x, main ="random", xlab ="Length", breaks = breaks)
 hist(x, main ="random", xlab ="Length")
