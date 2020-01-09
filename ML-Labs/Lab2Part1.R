@@ -79,17 +79,6 @@ table
 
 
 
-plot = ggplot(crab.data, aes(x = CL, RW, color = log.regression2)) +
-  geom_point()
-plot = plot + stat_function(fun = slopefunc, colour= "green")
-plot
-
-table = table(prediciton = log.regression2, actual =crab.data$sex)
-table
-1 - sum(diag(table))/nrow(crab.data)
-
-
-
 
 
 

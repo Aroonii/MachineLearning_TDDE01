@@ -46,6 +46,7 @@ set.seed(12345)
 ICA = fastICA(df1, n.comp = 2)
 What = ICA$K%*%ICA$W
 
+
 plot(What[,1],What[,2], main =" latent feature 1vs 2", xlab ="feature 1", ylab ="feature 2")
 
 
