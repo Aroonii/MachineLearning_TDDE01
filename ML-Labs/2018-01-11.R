@@ -20,7 +20,6 @@ res$rotation
 scaled_train_subset = scale(train_subset)
 
 
-
 res3 =princomp(scaled_train_subset)
 lambda3 = res3$sdev^2
 variance.vector2 = as.factor(sprintf("%2.3f", lambda3/sum(lambda3)*100))
@@ -33,14 +32,11 @@ summary(res3)
 #för att få upp till 95% med scaling används PC 1 - 9 => 95.387
 res3$loadings
 
-
 #part 2
 install.packages("pls")
 library(pls)
-#newtrain = subset(train, select = -c(codec))
 
 pcr = pcr(utime~ ., ncomp = 17, data =train, scale = TRUE  )
-
 
 prediction.func.test = function(i){
   prediction.pcr = predict(pcr, newdata = test, ncomp = i, type = "response")
@@ -53,7 +49,6 @@ prediction.func.train = function(i){
   MS = mean((prediction.pcr - train$utime)^2)
   return(MS)
 }
-
 
 nr.comp = seq(1,17,1)
 MSE.test = sapply(nr.comp, prediction.func.test)
@@ -105,7 +100,7 @@ mean(variance)
 
 
 
-## assignment 4
+## part 4
 #use orignial data to create a variable class that shows "mpeg" if variable is codec = "mpeg4" and "other" otehrwise
 #create a plot "duration" versus "fframes" where cses are colored by "class". Do you think that the classes are 
 # easily separable by linear decision boundary
