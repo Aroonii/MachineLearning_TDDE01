@@ -1,4 +1,4 @@
-my_data <-  spambase
+my_data <- read.csv2('spambase.csv')
 n=dim(my_data)[1]
 set.seed(12345)
 id=sample(1:n, floor(n*0.5))
@@ -77,7 +77,6 @@ confusion = table(kknnprediction, train$Spam)
 print(confusion)
 kknnrate = 1 - sum(diag(confusion))/sum(confusion)
 print(kknnrate)
-
 #5
 kknnmodel2 = kknn(as.factor(Spam)~., train, train,k =1)
 kknnprediction2 = (fitted(kknnmodel2))

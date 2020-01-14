@@ -1,4 +1,4 @@
-data = machines_1_
+data = read.csv2('machines.csv')
 View(data)
 plot(data)
 log.like = function(theta, data){
