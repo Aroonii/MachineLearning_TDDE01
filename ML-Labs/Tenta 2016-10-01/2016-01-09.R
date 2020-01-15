@@ -33,12 +33,14 @@ plot(CVtree$size, CVtree$dev)
 # k is the penalizing paramter which determines how manyleafes should be cut
 which.min(CVtree$size)
 which.min(CVtree$dev)
+opt.tree.length = CVtree$size[which.min(CVtree$dev)]
 
 #min value is given by leafs = 5 and uses variables A4, A10, A6
 CVtree$dev[3]
-finalTree = prune.tree(tree, best = 5)
-plot(finalTree)
+finalTree = prune.tree(tree, best = opt.tree.length)
+plot(finalTree, type = "uniform")
 text(finalTree, pretty = 0)
+summary(finalTree)
 
 #install.packages('glmnet')
 #library(glmnet)
@@ -51,9 +53,10 @@ lasso.model = cv.glmnet(x_train, class, alpha = 1, family = "binomial")
 lasso.model$lambda.min
 plot(lasso.model)
 coef(lasso.model, s = "lambda.min")
+lasso.model$nzero[39]
 
 #optimal lambda (penality paramter) is 0.0994
-#The nr of componetns used are 23
+#The nr of componetns used are 22
 # the mean sqare error is lower for a lower value of lambda this is natural since the penality factor increases the mse 
 # The model using the optimal lambda has a smaller binomial deviance but it does not look statistically significatly
 # better. It is hower better since it gives a more sparse solution since it uses less components hence # avoiding
@@ -61,7 +64,7 @@ coef(lasso.model, s = "lambda.min")
 
 y = test$Class
 x = test[,1:15]
-x_test = model.matrix( ~ .-1, train[,-16])
+x_test = model.matrix( ~ .-1, test[,-16])
 ynew.tree = predict(finalTree, newdata = test, type = "vector")
 ynew.lasso  = predict(lasso.model, newx = x_test, type = "response")
 sum(y*log(ynew.tree)+(1-y)*log(1-ynew.tree))
@@ -100,13 +103,8 @@ data(spam)
 n=dim(spam)[1]
 set.seed(1234567890)
 id=sample(1:n, floor(n*0.5))
-train=spam[id,]
-id1=setdiff(1:n, id)
-set.seed(12345)
-id2=sample(id1, floor(n*0.25))
-valid=spam[id2,]
-id3=setdiff(id1,id2)
-test=spam[id3,]
+tr1=spam[id,]
+tr2 = spam[-id,]
 
 set.seed(1234567890)
 kernel1 = ksvm(type~., data = train, kernel = "rbfdot", C = 1, kpar = list(sigma = 0.01), cross = 2)
@@ -121,20 +119,62 @@ kernel5 = ksvm(type~., data = train, kernel = "vanilladot", C = 1, cross = 2)
 set.seed(1234567890)
 kernel6 = ksvm(type~., data = train, kernel = "vanilladot", C = 5, cross = 2)
 
-prediction1 = predict(kernel1, newdata = valid[,-58])
-mean(prediction1 != valid$type )
-prediction2 = predict(kernel2, newdata = valid[,-58])
-mean(prediction2 != valid$type )
-prediction3 = predict(kernel3, newdata = valid[,-58])
-mean(prediction3 != valid$type )
-prediction4 = predict(kernel4, newdata = valid[,-58])
-mean(prediction4 != valid$type )
-prediction5 = predict(kernel5, newdata = valid[,-58])
-mean(prediction5 != valid$type )
-prediction6 = predict(kernel6, newdata = valid[,-58])
-mean(prediction6 != valid$type )
+pred.kernel1 = function(train, test){
+  set.seed(1234567890)
+  kernel = ksvm(type~., data = train, kernel = "rbfdot", C = 1, kpar = list(sigma = 0.01), cross = 2)
+  prediction = predict(kernel, newdata = test[,-58])
+  x = mean((prediction != test$type)^2)
+  return(x)
+}
+
+pred.kernel2 = function(train, test){
+  set.seed(1234567890)
+  kernel = ksvm(type~., data = train, kernel = "rbfdot", C = 1, kpar = list(sigma = 0.05), cross = 2)
+  prediction = predict(kernel, newdata = test[,-58])
+  x = mean((prediction != test$type)^2)
+  return(x)
+}
+
+pred.kernel3 = function(train, test){
+  set.seed(1234567890)
+  kernel = ksvm(type~., data = train, kernel = "rbfdot", C = 5, kpar = list(sigma = 0.01), cross = 2)
+  prediction = predict(kernel, newdata = test[,-58])
+  x = mean((prediction != test$type)^2)
+  return(x)
+}
+
+pred.kernel4 = function(train, test){
+  set.seed(1234567890)
+  kernel = ksvm(type~., data = train, kernel = "rbfdot", C = 5, kpar = list(sigma = 0.05), cross = 2)
+  prediction = predict(kernel, newdata = test[,-58])
+  x = mean((prediction != test$type)^2)
+  return(x)
+}
+
+pred.kernel5 = function(train, test){
+  set.seed(1234567890)
+  kernel = ksvm(type~., data = train, kernel = "vanilladot", C = 1, cross = 2)
+  prediction = predict(kernel, newdata = test[,-58])
+  x = mean((prediction != test$type)^2)
+  return(x)
+}
+
+pred.kernel6 = function(train, test){
+  set.seed(1234567890)
+  kernel = ksvm(type~., data = train, kernel = "vanilladot", C = 5, cross = 2)
+  prediction = predict(kernel, newdata = test[,-58])
+  x = mean((prediction != test$type)^2)
+  return(x)
+}
 
 
+mse1 = (pred.kernel1(tr1, tr2) + pred.kernel1(tr2, tr1))/2
+mse2 = (pred.kernel2(tr1, tr2) + pred.kernel2(tr2, tr1))/2
+mse3 = (pred.kernel3(tr1, tr2) + pred.kernel3(tr2, tr1))/2
+mse4 = (pred.kernel4(tr1, tr2) + pred.kernel4(tr2, tr1))/2
+mse5 = (pred.kernel5(tr1, tr2) + pred.kernel5(tr2, tr1))/2
+mse6 = (pred.kernel6(tr1, tr2) + pred.kernel6(tr2, tr1))/2
+cat("kernel1", mse1, "kernel2", mse2, "kernel3", mse3, "kernel4", mse4, "kernle5", mse5, "kernel6", mse6)
 
 
 ##NERUALNETWORK

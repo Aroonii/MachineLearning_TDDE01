@@ -84,7 +84,7 @@ mean(mydata$species!= bayesPCA.predict)
 bank = read.csv2('bank.csv')
 
 glm = glm(Visitors ~ Time, data= bank, family = poisson(link="log"))
-plot(glm)
+#plot(glm)
 coefficients(glm)
 glm$coefficients
 # Time = => intercept + Time*0.4017
@@ -100,39 +100,98 @@ print(control)
 
 #reorder (although already ordered) according to time
 data2 = bank[order(bank$Time),]
-data1 = bank
-
-mle=lm(Visitors~Time, data=data2)
+#data1 = bank
 
 rng=function(data, mle) {
   data1=data.frame(Visitors=data$Visitors, Time=data$Time)
   n=length(data$Visitors)
   #generate new data 
-  data1$Visitors=rnorm(n,predict(mle, newdata=data1),sd(mle$residuals))
+  #data1$Visitors=rnorm(n,predict(mle, newdata=data1),sd(mle$residuals))
+  data1$Visitors = rpois(n, predict(mle, newdata = data1, type = "response"))
   return(data1)
 }
 f1=function(data1){
-  res=lm(Visitors~., data=data1) #fit linear model
+  res=glm(Visitors~., data=data1, family = poisson(link = "log")) #fit linear model
   #predict values for all Area values from the original data
-  visitorsP=predict(res,newdata=time)
-  n = nrow(time)
-  predictedVisitors = rnorm(n, visitorsP, sd = sd(glm$residuals))
+  visitorsP=predict(res,newdata=data.frame(Time=seq(12,13,0.05)), type = "response")
+  n = length(seq(12,13,0.05))
+  predictedVisitors = rpois(n, visitorsP)
   return(predictedVisitors)
 }
 
-res=boot(data2, statistic=f1, R=1000, mle=mle, ran.gen=rng, sim="parametric")
+set.seed(12345)
+res=boot(data2, statistic=f1, R=1000, mle=glm, ran.gen=rng, sim="parametric")
+e = envelope(res)
 plot(res)
 
-#res=boot(Dataframe, statistic=f1, R=1000, mle=linear_model, ran.gen=rng, sim="parametric")
-e=envelope(res)
+#new.time = data.frame(Time = seq(12,13,0.05))
+
 plot(bank$Time, bank$Visitors, main="Forecasting of visitors depending on time", xlab="Time",
-     ylab="Visitors", xlim=c(9,13), ylim=c(30,500))
-points(bank$Time, res$t0, col = "red")
+     ylab="Visitors", xlim=c(9,13), ylim=c(30,300))
+points(seq(12,13,0.05), (e$point[1,]), col = "red")
+points(seq(12,13,0.05), (e$point[2,]), col = "green")
+min.value_13 = exp(e$point[2,21])
+max.value_13 = exp(e$point[1,21])
+cat("the bank should expect between", min.value_13, " and ", max.value_13, "at 13.00" )
 
-points(time, exp(e$point[2,]), type="l", lty=21, col="gray")
-points(seq(12,13,0.05), exp(e$point[1,]), type="l", lty=21, col="gray")
 
-min_value_13=exp(e$point[2,21])
-max_value_13=exp(e$point[1,21])
-cat("The bank should expect between", min_value_13, "and", max_value_13, "customers", sep=" ")
+#SVM
+#########################
+# estimate the error for the three kernel support vectors with different C values. 
+# Use cross validation with 2 folds to determine the best model. Error on the model is given by cross(model)
+
+library(kernlab)
+data(spam)
+set.seed(1234567890)
+kernel1 = ksvm(type~., data = spam, cross = 2, C = 1, kernel = "rbfdot", kpar = list(sigma = 10))
+set.seed(1234567890)
+kernel2 = ksvm(type~., data = spam, cross = 2, C = 10, kernel = "rbfdot", kpar = list(sigma = 0.05))
+set.seed(1234567890)
+kernel3 = ksvm(type~., data = spam, cross = 2, C = 1000, kernel = "rbfdot", kpar = list(sigma = 0.05))
+
+cross(kernel1)
+cross(kernel2)
+cross(kernel3)
+#Kernel 2 gives the best error estimate. Cross = 2 does cross validation automatically. Splits the incoming data 
+# into 2 fold and returns the sum(mse)/folds
+
+##NEuralnet
+
+#install.packages('neuralnet')
+#library(neuralnet)
+
+
+#index = sample(50,50)
+#tr = data[index[1:25]]
+#test = data[index[26:50]]
+
+#install.packages('neuralnet')
+#library(neuralnet)
+
+# same idea of cross validation nut have to do the split of the data manually
+
+set.seed(1234567890)
+Var <- runif(50, 0, 10)
+tr <- data.frame(Var, Sin=sin(Var))
+tr1 <- tr[1:25,] # Fold 1
+tr2 <- tr[26:50,] # Fold 2
+
+
+thresh.vector = rep(0,10)
+thresh.error = rep(0,10)
+MSE = rep(0,2)
+#Random varaiable initialization of the weights in the interval [-1,1]
+winit = runif(31, -1,1)
+
+nn = neuralnet(Sin~ Var, threshold = 0.001, data = tr1, hidden =c(10), startweights = winit)
+prediction = predict(nn, tr2)
+MSE[1] = mean((prediction - tr2$Sin)^2)
+
+nn = neuralnet(Sin~ Var, threshold = 0.001, data = tr2, hidden =c(10), startweights = winit)
+prediction = predict(nn, tr1)
+MSE[2] = mean((prediction-tr1$Sin)^2)
+
+errEstimate = sum(MSE)/2
+print(errEstimate)
+
 
